@@ -6,9 +6,11 @@ This project appeared as a solution for handling the expenses details.
 
 In the process of developpment several ressources were used: 
 
+- [Main framework inspiration (Python code here)](https://nanonets.com/blog/receipt-ocr/)
 - [R Tesseract guide](https://cran.r-project.org/web/packages/tesseract/vignettes/intro.html)
 - [Linux (Ubuntu) Tesseract binding](https://doc.ubuntu-fr.org/tesseract-ocr)
 - [Tesseract project GitHub homepage](https://github.com/tesseract-ocr/tesseract)
+- [Tesseract documentation](https://tesseract-ocr.github.io/tessdoc)
 
 ## Organisation 
 
