@@ -44,3 +44,7 @@ data/*
 
 # JSON 
 *.json
+
+# Python testing folder
+python/*
+./pyhton/*
