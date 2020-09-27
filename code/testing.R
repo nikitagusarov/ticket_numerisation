@@ -20,6 +20,7 @@ write_density = "1000x1000"
 
 # Load packages
 library(tidyverse)
+library(magick)
 
 # Read files 
 files = list.files(
@@ -43,11 +44,19 @@ images = lapply(
 # Load functional packages
 library(magick)
 
+# aux
+latency = FALSE
+
 # Main pype transfomation flow
 transformed_images = lapply(
+# text = lapply(
     images, 
     function(x) {
-        x %>%
+        x %>% 
+        image_resize(
+            "1000x"#, 
+            # filter = "Gaussian"
+        ) %>%
         image_threshold(
             type = c("black", "white"),
             threshold = "50%",
@@ -55,11 +64,7 @@ transformed_images = lapply(
         ) %>% 
         image_convert(
             type = "Grayscale"
-        ) %>% 
-        image_resize(
-            "1000x", 
-            filter = "Gaussian"
-        ) %>%{ 
+        ) %>% { 
             if (latency)
                 image_lat(
                     geometry = "5x5+1%"
@@ -69,7 +74,7 @@ transformed_images = lapply(
         image_write(
             format = "png", 
             density = "1000x1000"
-        )
+        ) 
     }
 )
 
@@ -96,13 +101,43 @@ text = lapply(
 
 # PART 4: Text mining
 
-# Output 
-cat(text[[1]])
+# aux
+lapply(text, cat)
 
-text = text %>% 
-    lapply(
-        function(x) 
-        strsplit(x, "\n")
+strsplit(text[[1]], "\n")
+
+# Parallelisation
+library(foreach)
+
+# Text treatment
+tab = foreach (i = 1:length(lines), .combine = rbind) %do% {
+    
+    # Unlist 
+    ticket = text[[i]] %>% 
+        strsplit("\n") %>% 
+        unlist()
+    
+    # Remove blank lines
+    ticket = ticket[which(ticket != "")]
+
+    # Find "DEBIT"
+    c(
+        ticket[which(ticket == "DEBIT") - 1], 
+        ticket[6],
+        ticket[7]
     )
+}
+
+# Organise 
+colnames(tab) = c(
+    "Price",
+    "Date",
+    "Agent"
+)
+rownames(tab) = 1:nrow(tab)
+
+# Preview 
+tab
+
 
 # Treatment of the text data
