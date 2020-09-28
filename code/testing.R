@@ -110,34 +110,60 @@ strsplit(text[[1]], "\n")
 library(foreach)
 
 # Text treatment
-tab = foreach (i = 1:length(lines), .combine = rbind) %do% {
-    
+tab = foreach (i = 1:length(text), .combine = rbind) %do% {
+
     # Unlist 
     ticket = text[[i]] %>% 
         strsplit("\n") %>% 
         unlist()
-    
+        
     # Remove blank lines
     ticket = ticket[which(ticket != "")]
 
-    # Find "DEBIT"
-    c(
-        ticket[which(ticket == "DEBIT") - 1], 
-        ticket[6],
-        ticket[7]
-    )
+    if (any(ticket == "DEBIT")) {
+        # CLASS 1: Credit card payment ticket
+
+        # Find "DEBIT"
+        data.frame(
+            Type = "Debit",
+            Total = ticket[which(ticket == "DEBIT") - 1], 
+            Date = ticket[6],
+            Agent = ticket[7],
+            Category = NA,
+            Product = NA
+        )
+    } else if (any (ticket == "Casino")) {
+        # CLASS 2: Geant full ticket
+
+        # Catch product groups
+        categories = grep("^>>*|^\\\\\\\\*", ticket)
+
+        # List everything
+        foreach (i = 1:(length(categories)-1), .combine = rbind) %do% {
+            
+            n = categories[i+1] - categories[i] - 1
+
+            data.frame(
+                Type = rep("Detail", n),
+                Total = rep(NA, n),
+                Date = rep(ticket[grep("^Date*", ticket)], n),
+                Agent = rep(ticket[1], n),
+                Category = rep(ticket[categories[i]], n),
+                Product = ticket[(categories[i]+1):(categories[i+1]-1)]
+            ) 
+        }
+    } else {}
 }
 
 # Organise 
-colnames(tab) = c(
-    "Price",
-    "Date",
-    "Agent"
-)
-rownames(tab) = 1:nrow(tab)
+# colnames(tab) = c(
+#     "Price",
+#     "Date",
+#     "Agent"
+# )
+# rownames(tab) = 1:nrow(tab)
 
 # Preview 
 tab
-
 
 # Treatment of the text data
