@@ -21,6 +21,7 @@ write_density = "1000x1000"
 # Load packages
 library(tidyverse)
 library(magick)
+library(foreach)
 
 # Read files 
 files = list.files(
@@ -37,6 +38,11 @@ images = lapply(
     }
 )
 
+images = foreach (i = 1:length(files)) %do% {
+    cat(i, "\n")
+    magick::image_read(files[i]) %>% 
+    image_rotate(90)
+}
 
 
 # PART 2: Images adaptation
@@ -46,13 +52,25 @@ library(magick)
 
 # aux
 latency = FALSE
+gc(full = TRUE)
+
+# PART 3: Text extraction 
+
+# Loading Tesseract
+library(tesseract)
+
+# Start tesseract and parametrise it 
+tesseract(language = "fra")
 
 # Main pype transfomation flow
 transformed_images = lapply(
 # text = lapply(
-    images, 
+    # images,
+    files, 
     function(x) {
-        x %>% 
+        read = x %>% 
+        image_read() %>% 
+        image_rotate(90) %>%
         image_resize(
             "1000x"#, 
             # filter = "Gaussian"
@@ -74,19 +92,18 @@ transformed_images = lapply(
         image_write(
             format = "png", 
             density = "1000x1000"
-        ) 
+        ) %>% 
+        ocr()
+        
+        # Clean space
+        gc(full=TRUE) 
+
+        # Write
+        read
     }
 )
 
-
-
-# PART 3: Text extraction 
-
-# Loading Tesseract
-library(tesseract)
-
-# Start tesseract and parametrise it 
-tesseract(language = "fra")
+gc(full = TRUE) 
 
 # Text extraction
 text = lapply(
@@ -100,6 +117,7 @@ text = lapply(
 
 
 # PART 4: Text mining
+text = transformed_images
 
 # aux
 lapply(text, cat)
@@ -156,12 +174,31 @@ tab = foreach (i = 1:length(text), .combine = rbind) %do% {
 }
 
 # Organise 
-# colnames(tab) = c(
-#     "Price",
-#     "Date",
-#     "Agent"
-# )
-# rownames(tab) = 1:nrow(tab)
+tab =  tab %>% 
+    mutate_all(as.character)
+tab[is.na(tab)] = ""
+tab %>% mutate(
+    Total = as.numeric(str_extract(str_replace(tab$Total, ",", "."), "\\(?[0-9.]+\\)?"))
+)
+
+tab %>% mutate(
+    Total = Total %>% 
+        str_replace(",", ".") %>%   
+        str_extract("\\(?[0-9.]+\\)?") %>% 
+        as.numeric(),
+    Time = Date %>% 
+        str_replace("Date : ", "") %>% 
+        str_extract("\\(?[0-9/:]+$\\)?"),
+    Date = Date %>% 
+        str_replace("Date : ", "") %>% 
+        str_extract("\\(?[0-9/:]+\\)?"),
+    Category = Category %>% 
+        str_replace(">> ", ""),
+    Price = Product %>% 
+        str_replace(",", ".") %>%   
+        str_extract("\\(?[0-9.]+\\)?") %>% 
+        as.numeric()
+)
 
 # Preview 
 tab
